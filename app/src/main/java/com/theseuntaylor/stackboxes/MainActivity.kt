@@ -10,15 +10,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,22 +34,32 @@ import androidx.compose.ui.unit.sp
 import com.theseuntaylor.stackboxes.ui.theme.StackBoxesTheme
 import com.theseuntaylor.stackboxes.ui.theme.activeColor
 import com.theseuntaylor.stackboxes.ui.theme.inactiveColor
-import java.util.Stack
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    val data = listOf("1", "2", "3", "4", "5" , "6", "7", "8", "9")
+    val data = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             StackBoxesTheme {
+                val snackbarHostState = remember { SnackbarHostState() }
+
                 // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colors.background
-                ) {
-                    Boxes(data = data)
+                Scaffold(
+                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+                ) { innerPadding ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                            .systemBarsPadding(),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Boxes(data = data, snackbarHostState = snackbarHostState)
+                    }
                 }
             }
         }
@@ -53,49 +67,42 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String) {
-    Text(text = "Hello $name!")
-}
-
-@Composable
 fun Boxes(
-    data: List<String>,
-    modifier: Modifier = Modifier,
+    data: List<String>, modifier: Modifier = Modifier, snackbarHostState: SnackbarHostState
 ) {
-    val boxStack = Stack<String>()
-    val boxesState = remember { mutableStateListOf(false, false, false,false, false, false,false, false, false) }
+    // Indices of the tapped boxes, in tap order; the top of the stack is the last element.
+    // A box is lit exactly when its index is in the stack.
+    val boxStack = remember { mutableStateListOf<Int>() }
+    val isResetting = remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
     ) {
         LazyVerticalGrid(
-            state = rememberLazyGridState(),
-            columns = GridCells.Fixed(3)
+            state = rememberLazyGridState(), columns = GridCells.Fixed(3)
         ) {
-            items(data) { item ->
-                val i = data.indexOf(item)
+            itemsIndexed(data) { index, item ->
                 Box(
                     modifier = modifier
                         .width(50.dp)
                         .clickable {
-                            handleClicksAndState(
-                                stack = boxStack,
-                                boxesState = boxesState,
-                                arraySize = data,
-                                item = item,
-                                indx = i
-                            )
-
+                            coroutineScope.launch {
+                                handleClicksAndState(
+                                    stack = boxStack,
+                                    capacity = data.size,
+                                    index = index,
+                                    isResetting = isResetting,
+                                    snackbarHostState = snackbarHostState
+                                )
+                            }
                         }
                         .padding(5.dp)
                         .border(
                             width = 3.dp,
-                            color = if (boxesState[i]) activeColor else inactiveColor,
+                            color = if (index in boxStack) activeColor else inactiveColor,
                             shape = RectangleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
+                        ), contentAlignment = Alignment.Center) {
                     Text(
                         text = item,
                         fontSize = 24.sp,
@@ -108,47 +115,31 @@ fun Boxes(
     }
 }
 
-// takes in stack and a boolean. at every tap, we check if the stack is filled up,
-// if it is, we start to pop, else we change the state of the box and finish?
-private fun handleClicksAndState(
-    stack: Stack<String>,
-    boxesState: SnapshotStateList<Boolean>,
-    arraySize: List<String>,
-    item: String,
-    indx: Int,
+// On every tap we push the box onto the stack. Once the stack is full we pop it
+// back down one box at a time, ignoring taps until it is empty again.
+private suspend fun handleClicksAndState(
+    stack: SnapshotStateList<Int>,
+    capacity: Int,
+    index: Int,
+    isResetting: MutableState<Boolean>,
+    snackbarHostState: SnackbarHostState
 ) {
-    // if we have gotten to the max,
-    // [1, 2, 3]
-    // [true, true, true]
+    if (isResetting.value || index in stack) return
 
-    var index = indx
-    if (stack.size < arraySize.size) {
-        if (!stack.contains(item)) {
-            stack.push(item)
-            boxesState[index] = !boxesState[index]
-            if (stack.size == arraySize.size) {
-                do {
-                    val latest = stack.peek()
-                    var indexOfLatest = arraySize.indexOf(latest)
+    stack.add(index)
 
-                    // so, i want to pop the latest item that was put into the stack, right?
-                    // what this means is i can find the latest item at any point in time.
-                    // how can i find it? stack.peek()
-                    // i get the latest item and then look for it in the list of items i am being sent.
-                    // then i want to get the index of that item and tie it to the list of states.
-
-                    stack.pop()
-                    boxesState[indexOfLatest] = !boxesState[indexOfLatest]
-                } while (stack.size > 0)
+    if (stack.size == capacity) {
+        isResetting.value = true
+        try {
+            while (stack.isNotEmpty()) {
+                delay(500)
+                stack.removeAt(stack.lastIndex)
             }
+        } finally {
+            isResetting.value = false
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    StackBoxesTheme {
-        Greeting("Android")
+        snackbarHostState.showSnackbar(
+            message = "All boxes have been reset!", duration = SnackbarDuration.Short
+        )
     }
 }
