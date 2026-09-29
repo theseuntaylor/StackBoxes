@@ -8,46 +8,55 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material.*
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.OutlinedButton
+import androidx.compose.material.Scaffold
+import androidx.compose.material.SnackbarDuration
+import androidx.compose.material.SnackbarHost
+import androidx.compose.material.SnackbarHostState
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.theseuntaylor.stackboxes.ui.theme.StackBoxesTheme
 import com.theseuntaylor.stackboxes.ui.theme.activeColor
 import com.theseuntaylor.stackboxes.ui.theme.inactiveColor
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-
-    val data = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             StackBoxesTheme {
                 val snackbarHostState = remember { SnackbarHostState() }
+                var difficulty by rememberSaveable { mutableStateOf(Difficulty.Easy) }
+                // A new round state per difficulty; the picker is locked while a round runs.
+                val game = remember(difficulty) { GameState(difficulty) }
 
-                // A surface container using the 'background' color from the theme
                 Scaffold(
                     snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                 ) { innerPadding ->
@@ -55,10 +64,20 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding)
-                            .systemBarsPadding(),
+                            .systemBarsPadding()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Boxes(data = data, snackbarHostState = snackbarHostState)
+                        DifficultyPicker(
+                            selected = difficulty,
+                            enabled = game.phase == Phase.Idle,
+                            onSelect = { difficulty = it }
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Controls(game = game)
+                        Spacer(Modifier.height(16.dp))
+                        Boxes(game = game, snackbarHostState = snackbarHostState)
                     }
                 }
             }
@@ -67,79 +86,91 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Boxes(
-    data: List<String>, modifier: Modifier = Modifier, snackbarHostState: SnackbarHostState
-) {
-    // Indices of the tapped boxes, in tap order; the top of the stack is the last element.
-    // A box is lit exactly when its index is in the stack.
-    val boxStack = remember { mutableStateListOf<Int>() }
-    val isResetting = remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
-    ) {
-        LazyVerticalGrid(
-            state = rememberLazyGridState(), columns = GridCells.Fixed(3)
-        ) {
-            itemsIndexed(data) { index, item ->
-                Box(
-                    modifier = modifier
-                        .width(50.dp)
-                        .clickable {
-                            coroutineScope.launch {
-                                handleClicksAndState(
-                                    stack = boxStack,
-                                    capacity = data.size,
-                                    index = index,
-                                    isResetting = isResetting,
-                                    snackbarHostState = snackbarHostState
-                                )
-                            }
-                        }
-                        .padding(5.dp)
-                        .border(
-                            width = 3.dp,
-                            color = if (index in boxStack) activeColor else inactiveColor,
-                            shape = RectangleShape
-                        ), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = item,
-                        fontSize = 24.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(24.dp)
-                    )
-                }
+fun DifficultyPicker(selected: Difficulty, enabled: Boolean, onSelect: (Difficulty) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Difficulty.values().forEach { difficulty ->
+            val isSelected = difficulty == selected
+            OutlinedButton(
+                onClick = { onSelect(difficulty) },
+                enabled = enabled,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    backgroundColor = if (isSelected) activeColor else inactiveColor
+                )
+            ) {
+                Text(difficulty.label)
             }
         }
     }
 }
 
-// On every tap we push the box onto the stack. Once the stack is full we pop it
-// back down one box at a time, ignoring taps until it is empty again.
-private suspend fun handleClicksAndState(
-    stack: SnapshotStateList<Int>,
-    capacity: Int,
-    index: Int,
-    isResetting: MutableState<Boolean>,
-    snackbarHostState: SnackbarHostState
-) {
-    if (isResetting.value || index in stack) return
+@Composable
+fun Controls(game: GameState) {
+    val coroutineScope = rememberCoroutineScope()
 
-    stack.add(index)
-
-    if (stack.size == capacity) {
-        isResetting.value = true
-        try {
-            while (stack.isNotEmpty()) {
-                delay(500)
-                stack.removeAt(stack.lastIndex)
-            }
-        } finally {
-            isResetting.value = false
-        }
-        snackbarHostState.showSnackbar(
-            message = "All boxes have been reset!", duration = SnackbarDuration.Short
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = when (game.phase) {
+                Phase.Idle -> "Repeat the sequence of ${game.difficulty.sequenceLength} boxes"
+                Phase.Showing -> "Watch the sequence..."
+                Phase.Input -> "Your turn: ${game.stack.size}/${game.difficulty.sequenceLength}"
+                Phase.Unwinding -> "Unstacking..."
+            },
+            fontSize = 18.sp,
+            textAlign = TextAlign.Center
         )
+        Spacer(Modifier.height(8.dp))
+        Button(
+            onClick = { coroutineScope.launch { game.start() } },
+            enabled = game.phase == Phase.Idle
+        ) {
+            Text("Start")
+        }
+    }
+}
+
+@Composable
+fun Boxes(game: GameState, snackbarHostState: SnackbarHostState) {
+    val coroutineScope = rememberCoroutineScope()
+    val size = game.difficulty.gridSize
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(size),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        items(game.difficulty.boxCount) { index ->
+            Box(
+                modifier = Modifier
+                    .aspectRatio(1f)
+                    .clickable {
+                        coroutineScope.launch {
+                            val message = when (game.tap(index)) {
+                                Outcome.Success -> "Sequence complete!"
+                                Outcome.WrongOrder -> "Wrong order, try again!"
+                                null -> return@launch
+                            }
+                            snackbarHostState.showSnackbar(
+                                message = message, duration = SnackbarDuration.Short
+                            )
+                        }
+                    }
+                    .padding(5.dp)
+                    .border(
+                        width = 3.dp,
+                        color = when {
+                            game.wrong == index -> MaterialTheme.colors.error
+                            game.isLit(index) -> activeColor
+                            else -> inactiveColor
+                        },
+                        shape = RectangleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = (index + 1).toString(),
+                    fontSize = 24.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
     }
 }
