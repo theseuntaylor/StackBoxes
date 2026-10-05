@@ -17,6 +17,7 @@ private const val POP_DELAY_MS = 300L
 private const val NEXT_ROUND_DELAY_MS = 500L
 
 const val MAX_LIVES = 3
+private const val ROUNDS_PER_LIFE = 3
 
 enum class Difficulty(val label: String, val gridSize: Int, val startLength: Int) {
     Easy("Easy", 3, 4),
@@ -35,8 +36,9 @@ enum class Result { GameOver, Cleared }
  * A game is a run of rounds. [start] shows a random sequence of [Difficulty.startLength] boxes;
  * the player repeats it with [tap] (each correct tap pushes the box onto [stack]), then the stack
  * unwinds last-in-first-out and the same sequence is shown again with one new box added.
- * A wrong tap costs one of [MAX_LIVES] lives and replays the same round. The game ends when
- * the lives run out, or when a sequence that uses every box is completed.
+ * A wrong tap costs a life and replays the same round; every [ROUNDS_PER_LIFE] completed
+ * rounds win a life back, up to [MAX_LIVES]. The game ends when the lives run out, or when a
+ * sequence that uses every box is completed.
  * Taps are ignored unless the game is waiting for input.
  */
 class GameState(val difficulty: Difficulty) {
@@ -102,6 +104,7 @@ class GameState(val difficulty: Difficulty) {
 
         score = sequence.size
         retrying = false
+        if (round % ROUNDS_PER_LIFE == 0 && lives < MAX_LIVES) lives++
         phase = Phase.Unwinding
         // Boxes never repeat within a sequence, so a full-grid sequence is the last one.
         val unused = (0 until difficulty.boxCount) - sequence.toSet()
