@@ -16,6 +16,8 @@ private const val WRONG_FLASH_MS = 600L
 private const val POP_DELAY_MS = 300L
 private const val NEXT_ROUND_DELAY_MS = 500L
 
+const val MAX_LIVES = 3
+
 enum class Difficulty(val label: String, val gridSize: Int, val startLength: Int) {
     Easy("Easy", 3, 4),
     Medium("Medium", 4, 6),
@@ -26,14 +28,15 @@ enum class Difficulty(val label: String, val gridSize: Int, val startLength: Int
 
 enum class Phase { Idle, Showing, Input, Unwinding }
 
-/** How the last game ended: a wrong tap, or every box on the grid used in one sequence. */
+/** How the last game ended: out of lives, or every box on the grid used in one sequence. */
 enum class Result { GameOver, Cleared }
 
 /**
  * A game is a run of rounds. [start] shows a random sequence of [Difficulty.startLength] boxes;
  * the player repeats it with [tap] (each correct tap pushes the box onto [stack]), then the stack
  * unwinds last-in-first-out and the same sequence is shown again with one new box added.
- * A wrong tap ends the game; so does completing a sequence that uses every box.
+ * A wrong tap costs one of [MAX_LIVES] lives and replays the same round. The game ends when
+ * the lives run out, or when a sequence that uses every box is completed.
  * Taps are ignored unless the game is waiting for input.
  */
 class GameState(val difficulty: Difficulty) {
@@ -48,6 +51,12 @@ class GameState(val difficulty: Difficulty) {
     var score by mutableIntStateOf(0)
         private set
     var result by mutableStateOf<Result?>(null)
+        private set
+    var lives by mutableIntStateOf(MAX_LIVES)
+        private set
+
+    // True while replaying a round the player got wrong.
+    var retrying by mutableStateOf(false)
         private set
 
     // Indices of the boxes the player has tapped correctly so far; top of the stack is last.
@@ -64,6 +73,8 @@ class GameState(val difficulty: Difficulty) {
         if (phase != Phase.Idle) return
         score = 0
         result = null
+        lives = MAX_LIVES
+        retrying = false
         show((0 until difficulty.boxCount).shuffled().take(difficulty.startLength))
     }
 
@@ -76,13 +87,21 @@ class GameState(val difficulty: Difficulty) {
             wrong = index
             delay(WRONG_FLASH_MS)
             wrong = null
-            return end(Result.GameOver)
+            lives--
+            if (lives == 0) return end(Result.GameOver)
+
+            unwind()
+            retrying = true
+            delay(NEXT_ROUND_DELAY_MS)
+            show(sequence)
+            return null
         }
 
         stack.add(index)
         if (stack.size < sequence.size) return null
 
         score = sequence.size
+        retrying = false
         phase = Phase.Unwinding
         // Boxes never repeat within a sequence, so a full-grid sequence is the last one.
         val unused = (0 until difficulty.boxCount) - sequence.toSet()

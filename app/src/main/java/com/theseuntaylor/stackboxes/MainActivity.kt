@@ -115,14 +115,18 @@ fun Controls(game: GameState) {
                     Result.GameOver -> "Game over!"
                     Result.Cleared -> "You cleared ${game.difficulty.label}!"
                 }
-                Phase.Showing -> "Round ${game.round}: watch the sequence..."
+                Phase.Showing ->
+                    "${if (game.retrying) "Try again! " else ""}Round ${game.round}: watch the sequence..."
                 Phase.Input -> "Your turn: ${game.stack.size}/${game.sequence.size}"
                 Phase.Unwinding -> "Unstacking..."
             },
             fontSize = 18.sp,
             textAlign = TextAlign.Center
         )
-        Text(text = "Score: ${game.score}", fontSize = 16.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(text = "Score: ${game.score}", fontSize = 16.sp)
+            Text(text = "Lives: ${game.lives}", fontSize = 16.sp)
+        }
         Spacer(Modifier.height(8.dp))
         Button(
             onClick = { coroutineScope.launch { game.start() } },
@@ -149,7 +153,7 @@ fun Boxes(game: GameState, snackbarHostState: SnackbarHostState) {
                     .clickable {
                         coroutineScope.launch {
                             val message = when (game.tap(index)) {
-                                Result.GameOver -> "Wrong order! Game over."
+                                Result.GameOver -> "Out of lives! Game over."
                                 Result.Cleared -> "Every box used. Well done!"
                                 null -> return@launch
                             }
