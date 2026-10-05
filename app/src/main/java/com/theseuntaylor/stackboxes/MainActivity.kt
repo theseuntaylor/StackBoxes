@@ -110,14 +110,19 @@ fun Controls(game: GameState) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = when (game.phase) {
-                Phase.Idle -> "Repeat the sequence of ${game.difficulty.sequenceLength} boxes"
-                Phase.Showing -> "Watch the sequence..."
-                Phase.Input -> "Your turn: ${game.stack.size}/${game.difficulty.sequenceLength}"
+                Phase.Idle -> when (game.result) {
+                    null -> "Repeat the sequence, starting with ${game.difficulty.startLength} boxes"
+                    Result.GameOver -> "Game over!"
+                    Result.Cleared -> "You cleared ${game.difficulty.label}!"
+                }
+                Phase.Showing -> "Round ${game.round}: watch the sequence..."
+                Phase.Input -> "Your turn: ${game.stack.size}/${game.sequence.size}"
                 Phase.Unwinding -> "Unstacking..."
             },
             fontSize = 18.sp,
             textAlign = TextAlign.Center
         )
+        Text(text = "Score: ${game.score}", fontSize = 16.sp)
         Spacer(Modifier.height(8.dp))
         Button(
             onClick = { coroutineScope.launch { game.start() } },
@@ -144,8 +149,8 @@ fun Boxes(game: GameState, snackbarHostState: SnackbarHostState) {
                     .clickable {
                         coroutineScope.launch {
                             val message = when (game.tap(index)) {
-                                Outcome.Success -> "Sequence complete!"
-                                Outcome.WrongOrder -> "Wrong order, try again!"
+                                Result.GameOver -> "Wrong order! Game over."
+                                Result.Cleared -> "Every box used. Well done!"
                                 null -> return@launch
                             }
                             snackbarHostState.showSnackbar(
