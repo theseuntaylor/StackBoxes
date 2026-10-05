@@ -10,3 +10,6 @@ val Teal200 = Color(0xFF03DAC5)
 val activeColor = Color(0xFF23E6A8)
 val inactiveColor = Color.Transparent
 val borderColor = Color(0xFF8A8A8A)
+val heartColor = Color(0xFFE53935)
+val heartLostColor = Color(0xFFCFCFCF)
+val heartGlintColor = Color.White

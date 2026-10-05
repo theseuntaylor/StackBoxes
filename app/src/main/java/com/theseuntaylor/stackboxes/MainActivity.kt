@@ -60,24 +60,29 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                 ) { innerPadding ->
-                    Column(
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding)
                             .systemBarsPadding()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                            .padding(16.dp)
                     ) {
-                        DifficultyPicker(
-                            selected = difficulty,
-                            enabled = game.phase == Phase.Idle,
-                            onSelect = { difficulty = it }
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Controls(game = game)
-                        Spacer(Modifier.height(16.dp))
-                        Boxes(game = game, snackbarHostState = snackbarHostState)
+                        Lives(lives = game.lives, modifier = Modifier.align(Alignment.TopEnd))
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            DifficultyPicker(
+                                selected = difficulty,
+                                enabled = game.phase == Phase.Idle,
+                                onSelect = { difficulty = it }
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Controls(game = game)
+                            Spacer(Modifier.height(16.dp))
+                            Boxes(game = game, snackbarHostState = snackbarHostState)
+                        }
                     }
                 }
             }
@@ -123,10 +128,7 @@ fun Controls(game: GameState) {
             fontSize = 18.sp,
             textAlign = TextAlign.Center
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(text = "Score: ${game.score}", fontSize = 16.sp)
-            Text(text = "Lives: ${game.lives}", fontSize = 16.sp)
-        }
+        Text(text = "Score: ${game.score}", fontSize = 16.sp)
         Spacer(Modifier.height(8.dp))
         Button(
             onClick = { coroutineScope.launch { game.start() } },
