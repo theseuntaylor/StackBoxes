@@ -81,7 +81,7 @@ class MainActivity : ComponentActivity() {
                                 onSelect = { difficulty = it }
                             )
                             Spacer(Modifier.height(16.dp))
-                            Controls(game = game, best = scores.firstOrNull()?.score ?: 0)
+                            Controls(game = game, scores = scores)
                             Spacer(Modifier.height(16.dp))
                             Boxes(
                                 game = game,
@@ -119,8 +119,9 @@ fun DifficultyPicker(selected: Difficulty, enabled: Boolean, onSelect: (Difficul
 }
 
 @Composable
-fun Controls(game: GameState, best: Int) {
+fun Controls(game: GameState, scores: List<ScoreEntry>) {
     val coroutineScope = rememberCoroutineScope()
+    var showLeaderboard by remember { mutableStateOf(false) }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
@@ -140,15 +141,27 @@ fun Controls(game: GameState, best: Int) {
         )
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(text = "Score: ${game.score}", fontSize = 16.sp)
-            Text(text = "Best: $best", fontSize = 16.sp)
+            Text(text = "Best: ${scores.firstOrNull()?.score ?: 0}", fontSize = 16.sp)
         }
         Spacer(Modifier.height(8.dp))
-        Button(
-            onClick = { coroutineScope.launch { game.start() } },
-            enabled = game.phase == Phase.Idle
-        ) {
-            Text("Start")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { coroutineScope.launch { game.start() } },
+                enabled = game.phase == Phase.Idle
+            ) {
+                Text("Start")
+            }
+            OutlinedButton(
+                onClick = { showLeaderboard = true },
+                enabled = game.phase == Phase.Idle
+            ) {
+                Text("Leaderboard")
+            }
         }
+    }
+
+    if (showLeaderboard) {
+        LeaderboardDialog(game.difficulty, scores, onDismiss = { showLeaderboard = false })
     }
 }
 
