@@ -56,6 +56,8 @@ class MainActivity : ComponentActivity() {
                 var difficulty by rememberSaveable { mutableStateOf(Difficulty.Easy) }
                 // A new round state per difficulty; the picker is locked while a round runs.
                 val game = remember(difficulty) { GameState(difficulty) }
+                val scoreStore = remember { ScoreStore(applicationContext) }
+                var scores by remember(difficulty) { mutableStateOf(scoreStore.top(difficulty)) }
 
                 Scaffold(
                     snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -79,9 +81,17 @@ class MainActivity : ComponentActivity() {
                                 onSelect = { difficulty = it }
                             )
                             Spacer(Modifier.height(16.dp))
-                            Controls(game = game)
+                            Controls(game = game, best = scores.firstOrNull()?.score ?: 0)
                             Spacer(Modifier.height(16.dp))
-                            Boxes(game = game, snackbarHostState = snackbarHostState)
+                            Boxes(
+                                game = game,
+                                snackbarHostState = snackbarHostState,
+                                onGameEnd = {
+                                    val newBest = scoreStore.record(game.difficulty, game.score)
+                                    scores = scoreStore.top(game.difficulty)
+                                    newBest
+                                }
+                            )
                         }
                     }
                 }
@@ -109,7 +119,7 @@ fun DifficultyPicker(selected: Difficulty, enabled: Boolean, onSelect: (Difficul
 }
 
 @Composable
-fun Controls(game: GameState) {
+fun Controls(game: GameState, best: Int) {
     val coroutineScope = rememberCoroutineScope()
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -128,7 +138,10 @@ fun Controls(game: GameState) {
             fontSize = 18.sp,
             textAlign = TextAlign.Center
         )
-        Text(text = "Score: ${game.score}", fontSize = 16.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(text = "Score: ${game.score}", fontSize = 16.sp)
+            Text(text = "Best: $best", fontSize = 16.sp)
+        }
         Spacer(Modifier.height(8.dp))
         Button(
             onClick = { coroutineScope.launch { game.start() } },
@@ -140,7 +153,12 @@ fun Controls(game: GameState) {
 }
 
 @Composable
-fun Boxes(game: GameState, snackbarHostState: SnackbarHostState) {
+fun Boxes(
+    game: GameState,
+    snackbarHostState: SnackbarHostState,
+    // Saves the finished game's score; returns true if it is a new best.
+    onGameEnd: () -> Boolean,
+) {
     val coroutineScope = rememberCoroutineScope()
     val size = game.difficulty.gridSize
 
@@ -154,11 +172,11 @@ fun Boxes(game: GameState, snackbarHostState: SnackbarHostState) {
                     .aspectRatio(1f)
                     .clickable {
                         coroutineScope.launch {
-                            val message = when (game.tap(index)) {
+                            val result = game.tap(index) ?: return@launch
+                            val message = when (result) {
                                 Result.GameOver -> "Out of lives! Game over."
                                 Result.Cleared -> "Every box used. Well done!"
-                                null -> return@launch
-                            }
+                            } + if (onGameEnd()) " New best!" else ""
                             snackbarHostState.showSnackbar(
                                 message = message, duration = SnackbarDuration.Short
                             )
