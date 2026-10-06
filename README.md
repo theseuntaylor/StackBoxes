@@ -13,6 +13,8 @@ pushed onto a stack; when the round ends the stack unwinds, last in, first out.
 4. A wrong tap costs a life and replays the round. Lose all three lives and the game is over.
 5. Every three completed rounds earn a life back, up to three.
 6. Your score is the longest sequence you completed. Use every box on the grid to clear the game.
+7. Your best score for each difficulty is saved on the device. **Leaderboard** shows the top
+   five scores for the selected difficulty, with the date each was set.
 
 | Difficulty | Grid | Starting sequence |
 |------------|------|-------------------|
@@ -40,3 +42,5 @@ Or open the project in Android Studio and run the `app` configuration.
 - `Game.kt`: game rules (`GameState`, difficulties, rounds, lives, score)
 - `MainActivity.kt`: the screen (difficulty picker, status, grid)
 - `Lives.kt`: pixel-heart lives indicator
+- `Scores.kt`: saved top scores per difficulty (`ScoreStore`, SharedPreferences)
+- `Leaderboard.kt`: leaderboard dialog
