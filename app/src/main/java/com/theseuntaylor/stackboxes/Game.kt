@@ -10,8 +10,7 @@ import kotlinx.coroutines.delay
 
 private const val TAG = "StackBoxes"
 
-private const val SHOW_GAP_MS = 300L
-private const val SHOW_LIT_MS = 600L
+private const val MIN_LIT_MS = 250L
 private const val WRONG_FLASH_MS = 600L
 private const val POP_DELAY_MS = 300L
 private const val NEXT_ROUND_DELAY_MS = 500L
@@ -19,10 +18,20 @@ private const val NEXT_ROUND_DELAY_MS = 500L
 const val MAX_LIVES = 3
 private const val ROUNDS_PER_LIFE = 3
 
-enum class Difficulty(val label: String, val gridSize: Int, val startLength: Int) {
-    Easy("Easy", 3, 4),
-    Medium("Medium", 4, 6),
-    Hard("Hard", 5, 8);
+/**
+ * [baseLitMs] is how long each box stays lit in round 1; every round after that is
+ * [speedUpMs] faster. Easy plays fastest; Hard plays slowest so its long sequences stay playable.
+ */
+enum class Difficulty(
+    val label: String,
+    val gridSize: Int,
+    val startLength: Int,
+    val baseLitMs: Long,
+    val speedUpMs: Long,
+) {
+    Easy("Easy", 3, 4, baseLitMs = 450, speedUpMs = 30),
+    Medium("Medium", 4, 6, baseLitMs = 550, speedUpMs = 20),
+    Hard("Hard", 5, 8, baseLitMs = 650, speedUpMs = 10);
 
     val boxCount: Int get() = gridSize * gridSize
 }
@@ -35,7 +44,8 @@ enum class Result { GameOver, Cleared }
 /**
  * A game is a run of rounds. [start] shows a random sequence of [Difficulty.startLength] boxes;
  * the player repeats it with [tap] (each correct tap pushes the box onto [stack]), then the stack
- * unwinds last-in-first-out and the same sequence is shown again with one new box added.
+ * unwinds last-in-first-out and the same sequence is shown again with one new box added, a little
+ * faster.
  * A wrong tap costs a life and replays the same round; every [ROUNDS_PER_LIFE] completed
  * rounds win a life back, up to [MAX_LIVES]. The game ends when the lives run out, or when a
  * sequence that uses every box is completed.
@@ -68,6 +78,10 @@ class GameState(val difficulty: Difficulty) {
         private set
 
     val round: Int get() = sequence.size - difficulty.startLength + 1
+
+    /** How long each box stays lit this round; the gap between boxes is half of it. */
+    val litMs: Long
+        get() = (difficulty.baseLitMs - difficulty.speedUpMs * (round - 1)).coerceAtLeast(MIN_LIT_MS)
 
     fun isLit(index: Int) = index in stack || index == flashing
 
@@ -119,14 +133,16 @@ class GameState(val difficulty: Difficulty) {
     private suspend fun show(next: List<Int>) {
         phase = Phase.Showing
         sequence = next
-        Log.d(TAG, "sequence=$sequence")
+        val lit = litMs
+        Log.d(TAG, "sequence=$sequence litMs=$lit")
 
         for (index in sequence) {
-            delay(SHOW_GAP_MS)
+            delay(lit / 2)
             flashing = index
-            delay(SHOW_LIT_MS)
+            delay(lit)
             flashing = null
         }
+        Log.d(TAG, "input")
         phase = Phase.Input
     }
 
