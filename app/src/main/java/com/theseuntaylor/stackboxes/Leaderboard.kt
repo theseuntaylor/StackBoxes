@@ -13,11 +13,16 @@ import java.util.Date
 
 /** The saved top scores for one difficulty, highest first. */
 @Composable
-fun LeaderboardDialog(difficulty: Difficulty, scores: List<ScoreEntry>, onDismiss: () -> Unit) {
+fun LeaderboardDialog(
+    difficulty: Difficulty,
+    reverse: Boolean,
+    scores: List<ScoreEntry>,
+    onDismiss: () -> Unit,
+) {
     val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("${difficulty.label} leaderboard") },
+        title = { Text("${difficulty.label}${if (reverse) " reverse" else ""} leaderboard") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (scores.isEmpty()) Text("No scores yet.", fontSize = 16.sp)
