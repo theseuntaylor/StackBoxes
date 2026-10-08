@@ -45,13 +45,13 @@ enum class Result { GameOver, Cleared }
  * A game is a run of rounds. [start] shows a random sequence of [Difficulty.startLength] boxes;
  * the player repeats it with [tap] (each correct tap pushes the box onto [stack]), then the stack
  * unwinds last-in-first-out and the same sequence is shown again with one new box added, a little
- * faster.
+ * faster. In [reverse] mode the player repeats each sequence backwards, last box first.
  * A wrong tap costs a life and replays the same round; every [ROUNDS_PER_LIFE] completed
  * rounds win a life back, up to [MAX_LIVES]. The game ends when the lives run out, or when a
  * sequence that uses every box is completed.
  * Taps are ignored unless the game is waiting for input.
  */
-class GameState(val difficulty: Difficulty) {
+class GameState(val difficulty: Difficulty, val reverse: Boolean = false) {
     var phase by mutableStateOf(Phase.Idle)
         private set
     var flashing by mutableStateOf<Int?>(null)
@@ -98,7 +98,8 @@ class GameState(val difficulty: Difficulty) {
     suspend fun tap(index: Int): Result? {
         if (phase != Phase.Input || index in stack) return null
 
-        if (index != sequence[stack.size]) {
+        val expected = if (reverse) sequence[sequence.lastIndex - stack.size] else sequence[stack.size]
+        if (index != expected) {
             phase = Phase.Unwinding
             wrong = index
             delay(WRONG_FLASH_MS)
