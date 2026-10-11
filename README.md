@@ -42,6 +42,21 @@ Requirements: JDK 17 and the Android SDK (compile SDK 37). The app runs on Andro
 
 Or open the project in Android Studio and run the `app` configuration.
 
+## Testing
+
+```sh
+./gradlew :app:testDebugUnitTest
+```
+
+Unit tests run on the JVM, with no device needed, and take a couple of seconds:
+
+- `GameStateTest`: rounds, taps, lives and refills, reverse mode, and playback speed. Uses
+  `kotlinx-coroutines-test` virtual time, so whole games run instantly.
+- `ScoreStoreTest`: saved scores (sorting, top five, ties, separate difficulties and modes,
+  damaged data), using an in-memory `SharedPreferences`.
+
+Results are written to `app/build/reports/tests/testDebugUnitTest/index.html`.
+
 ## Code layout
 
 - `Game.kt`: game rules (`GameState`, difficulties, speed, rounds, lives, score, reverse)
