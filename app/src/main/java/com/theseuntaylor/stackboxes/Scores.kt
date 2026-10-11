@@ -1,6 +1,7 @@
 package com.theseuntaylor.stackboxes
 
 import android.content.Context
+import android.content.SharedPreferences
 
 const val LEADERBOARD_SIZE = 5
 
@@ -10,8 +11,8 @@ data class ScoreEntry(val score: Int, val achievedAt: Long)
  * The top [LEADERBOARD_SIZE] scores per difficulty and mode (normal or reverse), highest first,
  * kept on the device. Ties keep the earlier score ahead.
  */
-class ScoreStore(context: Context) {
-    private val prefs = context.getSharedPreferences("scores", Context.MODE_PRIVATE)
+class ScoreStore(private val prefs: SharedPreferences) {
+    constructor(context: Context) : this(context.getSharedPreferences("scores", Context.MODE_PRIVATE))
 
     fun top(difficulty: Difficulty, reverse: Boolean): List<ScoreEntry> =
         prefs.getString(key(difficulty, reverse), null).orEmpty().split(';').mapNotNull { entry ->
