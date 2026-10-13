@@ -38,6 +38,22 @@ enum class Difficulty(
 
 enum class Phase { Idle, Showing, Input, Unwinding }
 
+/** Hooks for sound and vibration. Each is called once, at the moment it happens. */
+interface GameFeedback {
+    /** A box lights up during playback. */
+    fun boxShown(index: Int) {}
+
+    /** The player tapped the right box. */
+    fun correctTap(index: Int) {}
+
+    /** The player tapped the wrong box. */
+    fun wrongTap(index: Int) {}
+
+    companion object {
+        val None = object : GameFeedback {}
+    }
+}
+
 /** How the last game ended: out of lives, or every box on the grid used in one sequence. */
 enum class Result { GameOver, Cleared }
 
@@ -51,7 +67,11 @@ enum class Result { GameOver, Cleared }
  * sequence that uses every box is completed.
  * Taps are ignored unless the game is waiting for input.
  */
-class GameState(val difficulty: Difficulty, val reverse: Boolean = false) {
+class GameState(
+    val difficulty: Difficulty,
+    val reverse: Boolean = false,
+    private val feedback: GameFeedback = GameFeedback.None,
+) {
     var phase by mutableStateOf(Phase.Idle)
         private set
     var flashing by mutableStateOf<Int?>(null)
@@ -102,6 +122,7 @@ class GameState(val difficulty: Difficulty, val reverse: Boolean = false) {
         if (index != expected) {
             phase = Phase.Unwinding
             wrong = index
+            feedback.wrongTap(index)
             delay(WRONG_FLASH_MS)
             wrong = null
             lives--
@@ -115,6 +136,7 @@ class GameState(val difficulty: Difficulty, val reverse: Boolean = false) {
         }
 
         stack.add(index)
+        feedback.correctTap(index)
         if (stack.size < sequence.size) return null
 
         score = sequence.size
@@ -140,6 +162,7 @@ class GameState(val difficulty: Difficulty, val reverse: Boolean = false) {
         for (index in sequence) {
             delay(lit / 2)
             flashing = index
+            feedback.boxShown(index)
             delay(lit)
             flashing = null
         }
