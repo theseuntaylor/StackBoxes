@@ -31,6 +31,7 @@ import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,8 +59,17 @@ class MainActivity : ComponentActivity() {
                 val snackbarHostState = remember { SnackbarHostState() }
                 var difficulty by rememberSaveable { mutableStateOf(Difficulty.Easy) }
                 var reverse by rememberSaveable { mutableStateOf(false) }
+                val sounds = remember { SoundPlayer() }
+                DisposableEffect(sounds) { onDispose { sounds.close() } }
                 // A new game state per difficulty and mode; both are locked while a game runs.
-                val game = remember(difficulty, reverse) { GameState(difficulty, reverse) }
+                val game = remember(difficulty, reverse) {
+                    val boxCount = difficulty.boxCount
+                    GameState(difficulty, reverse, object : GameFeedback {
+                        override fun boxShown(index: Int) = sounds.box(index, boxCount)
+                        override fun correctTap(index: Int) = sounds.box(index, boxCount)
+                        override fun wrongTap(index: Int) = sounds.buzz()
+                    })
+                }
                 val scoreStore = remember { ScoreStore(applicationContext) }
                 var scores by remember(difficulty, reverse) {
                     mutableStateOf(scoreStore.top(difficulty, reverse))
