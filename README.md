@@ -18,6 +18,10 @@ pushed onto a stack; when the round ends the stack unwinds, last in, first out.
    five scores for the selected difficulty, with the date each was set.
 8. Turn on **Reverse** to repeat each sequence backwards, last box first. Reverse mode has its
    own best scores and leaderboards.
+9. Each box has its own retro tone, rising from C4 on box 1 to C6 on the last box, played
+   when it lights up and when you tap it. A wrong tap buzzes. Correct taps give a light
+   vibration tick and wrong taps a short buzz. Use the 🔊 and 📳 toggles in the top-left
+   corner to switch sound or vibration off; your choice is remembered.
 
 | Difficulty | Grid | Starting sequence | Speed (each box lit)                   |
 |------------|------|-------------------|----------------------------------------|
@@ -54,6 +58,10 @@ Unit tests run on the JVM, with no device needed, and take a couple of seconds:
   `kotlinx-coroutines-test` virtual time, so whole games run instantly.
 - `ScoreStoreTest`: saved scores (sorting, top five, ties, separate difficulties and modes,
   damaged data), using an in-memory `SharedPreferences`.
+- `GameFeedbackTest`: when sounds and vibrations are triggered, and that ignored taps
+  trigger nothing.
+- `ToneTest`: box pitches (distinct, rising, C4 to C6, on the scale).
+- `SettingsTest`: sound and vibration switches and their persistence.
 
 Results are written to `app/build/reports/tests/testDebugUnitTest/index.html`.
 
@@ -64,3 +72,5 @@ Results are written to `app/build/reports/tests/testDebugUnitTest/index.html`.
 - `Lives.kt`: pixel-heart lives indicator
 - `Scores.kt`: saved top scores per difficulty and mode (`ScoreStore`, SharedPreferences)
 - `Leaderboard.kt`: leaderboard dialog
+- `Tones.kt`: box pitches; `Sound.kt`: square-wave tone player (`SoundPlayer`)
+- `Haptics.kt`: vibration; `Settings.kt`: sound and vibration switches
