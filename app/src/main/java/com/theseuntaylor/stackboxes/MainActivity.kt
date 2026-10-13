@@ -25,6 +25,7 @@ import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.Scaffold
+import androidx.compose.material.IconToggleButton
 import androidx.compose.material.Switch
 import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.SnackbarHost
@@ -42,6 +43,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,18 +65,21 @@ class MainActivity : ComponentActivity() {
                 val sounds = remember { SoundPlayer() }
                 DisposableEffect(sounds) { onDispose { sounds.close() } }
                 val haptics = remember { Haptics(applicationContext) }
+                val settings = remember { Settings(applicationContext) }
                 // A new game state per difficulty and mode; both are locked while a game runs.
                 val game = remember(difficulty, reverse) {
                     val boxCount = difficulty.boxCount
                     GameState(difficulty, reverse, object : GameFeedback {
-                        override fun boxShown(index: Int) = sounds.box(index, boxCount)
+                        override fun boxShown(index: Int) {
+                            if (settings.sound) sounds.box(index, boxCount)
+                        }
                         override fun correctTap(index: Int) {
-                            sounds.box(index, boxCount)
-                            haptics.tick()
+                            if (settings.sound) sounds.box(index, boxCount)
+                            if (settings.vibration) haptics.tick()
                         }
                         override fun wrongTap(index: Int) {
-                            sounds.buzz()
-                            haptics.buzz()
+                            if (settings.sound) sounds.buzz()
+                            if (settings.vibration) haptics.buzz()
                         }
                     })
                 }
@@ -92,6 +98,7 @@ class MainActivity : ComponentActivity() {
                             .systemBarsPadding()
                             .padding(16.dp)
                     ) {
+                        FeedbackToggles(settings = settings, modifier = Modifier.align(Alignment.TopStart))
                         Lives(lives = game.lives, modifier = Modifier.align(Alignment.TopEnd))
                         Column(
                             modifier = Modifier.fillMaxSize(),
@@ -143,6 +150,37 @@ fun DifficultyPicker(selected: Difficulty, enabled: Boolean, onSelect: (Difficul
                 Text(difficulty.label)
             }
         }
+    }
+}
+
+@Composable
+fun FeedbackToggles(settings: Settings, modifier: Modifier = Modifier) {
+    Row(modifier = modifier) {
+        FeedbackToggle(
+            on = settings.sound, onIcon = "🔊", offIcon = "🔇", name = "Sound",
+            onChange = settings::updateSound
+        )
+        FeedbackToggle(
+            on = settings.vibration, onIcon = "📳", offIcon = "📴", name = "Vibration",
+            onChange = settings::updateVibration
+        )
+    }
+}
+
+@Composable
+private fun FeedbackToggle(
+    on: Boolean,
+    onIcon: String,
+    offIcon: String,
+    name: String,
+    onChange: (Boolean) -> Unit,
+) {
+    IconToggleButton(
+        checked = on,
+        onCheckedChange = onChange,
+        modifier = Modifier.semantics { contentDescription = "$name ${if (on) "on" else "off"}" }
+    ) {
+        Text(if (on) onIcon else offIcon, fontSize = 22.sp)
     }
 }
 
