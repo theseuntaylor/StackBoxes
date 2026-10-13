@@ -61,13 +61,20 @@ class MainActivity : ComponentActivity() {
                 var reverse by rememberSaveable { mutableStateOf(false) }
                 val sounds = remember { SoundPlayer() }
                 DisposableEffect(sounds) { onDispose { sounds.close() } }
+                val haptics = remember { Haptics(applicationContext) }
                 // A new game state per difficulty and mode; both are locked while a game runs.
                 val game = remember(difficulty, reverse) {
                     val boxCount = difficulty.boxCount
                     GameState(difficulty, reverse, object : GameFeedback {
                         override fun boxShown(index: Int) = sounds.box(index, boxCount)
-                        override fun correctTap(index: Int) = sounds.box(index, boxCount)
-                        override fun wrongTap(index: Int) = sounds.buzz()
+                        override fun correctTap(index: Int) {
+                            sounds.box(index, boxCount)
+                            haptics.tick()
+                        }
+                        override fun wrongTap(index: Int) {
+                            sounds.buzz()
+                            haptics.buzz()
+                        }
                     })
                 }
                 val scoreStore = remember { ScoreStore(applicationContext) }
