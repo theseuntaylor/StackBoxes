@@ -32,7 +32,8 @@ pushed onto a stack; when the round ends the stack unwinds, last in, first out.
 Speed never goes below 250 ms per box. Hard plays slowest so its long sequences stay playable.
 
 Boxes never repeat within a sequence. Taps are ignored while a sequence is playing, and the
-difficulty is locked until the game ends.
+difficulty is locked until the game ends. Rotating the phone keeps the game exactly where it
+was; in landscape the controls sit beside the grid.
 
 ## Build and run
 
@@ -68,7 +69,8 @@ Results are written to `app/build/reports/tests/testDebugUnitTest/index.html`.
 ## Code layout
 
 - `Game.kt`: game rules (`GameState`, difficulties, speed, rounds, lives, score, reverse)
-- `MainActivity.kt`: the screen (difficulty picker, status, grid)
+- `MainActivity.kt`: the screen (difficulty picker, status, grid; portrait and landscape)
+- `GameViewModel.kt`: holds the game, sound, vibration, settings and scores across rotation
 - `Lives.kt`: pixel-heart lives indicator
 - `Scores.kt`: saved top scores per difficulty and mode (`ScoreStore`, SharedPreferences)
 - `Leaderboard.kt`: leaderboard dialog
