@@ -3,6 +3,7 @@ package com.theseuntaylor.stackboxes
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,11 +33,10 @@ import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -51,86 +51,66 @@ import androidx.compose.ui.unit.sp
 import com.theseuntaylor.stackboxes.ui.theme.StackBoxesTheme
 import com.theseuntaylor.stackboxes.ui.theme.activeColor
 import com.theseuntaylor.stackboxes.ui.theme.inactiveColor
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: GameViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             StackBoxesTheme {
                 val snackbarHostState = remember { SnackbarHostState() }
-                var difficulty by rememberSaveable { mutableStateOf(Difficulty.Easy) }
-                var reverse by rememberSaveable { mutableStateOf(false) }
-                val sounds = remember { SoundPlayer() }
-                DisposableEffect(sounds) { onDispose { sounds.close() } }
-                val haptics = remember { Haptics(applicationContext) }
-                val settings = remember { Settings(applicationContext) }
-                // A new game state per difficulty and mode; both are locked while a game runs.
-                val game = remember(difficulty, reverse) {
-                    val boxCount = difficulty.boxCount
-                    GameState(difficulty, reverse, object : GameFeedback {
-                        override fun boxShown(index: Int) {
-                            if (settings.sound) sounds.box(index, boxCount)
-                        }
-                        override fun correctTap(index: Int) {
-                            if (settings.sound) sounds.box(index, boxCount)
-                            if (settings.vibration) haptics.tick()
-                        }
-                        override fun wrongTap(index: Int) {
-                            if (settings.sound) sounds.buzz()
-                            if (settings.vibration) haptics.buzz()
-                        }
-                    })
+                LaunchedEffect(viewModel) {
+                    viewModel.messages.collect {
+                        snackbarHostState.showSnackbar(message = it, duration = SnackbarDuration.Short)
+                    }
                 }
-                val scoreStore = remember { ScoreStore(applicationContext) }
-                var scores by remember(difficulty, reverse) {
-                    mutableStateOf(scoreStore.top(difficulty, reverse))
-                }
-
                 Scaffold(
                     snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                 ) { innerPadding ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                            .systemBarsPadding()
-                            .padding(16.dp)
-                    ) {
-                        FeedbackToggles(settings = settings, modifier = Modifier.align(Alignment.TopStart))
-                        Lives(lives = game.lives, modifier = Modifier.align(Alignment.TopEnd))
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            DifficultyPicker(
-                                selected = difficulty,
-                                enabled = game.phase == Phase.Idle,
-                                onSelect = { difficulty = it }
-                            )
-                            ReverseToggle(
-                                reverse = reverse,
-                                enabled = game.phase == Phase.Idle,
-                                onChange = { reverse = it }
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Controls(game = game, scores = scores)
-                            Spacer(Modifier.height(16.dp))
-                            Boxes(
-                                game = game,
-                                snackbarHostState = snackbarHostState,
-                                onGameEnd = {
-                                    val newBest = scoreStore.record(game.difficulty, game.reverse, game.score)
-                                    scores = scoreStore.top(game.difficulty, game.reverse)
-                                    newBest
-                                }
-                            )
-                        }
-                    }
+                    GameScreen(viewModel, Modifier.padding(innerPadding))
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun GameScreen(viewModel: GameViewModel, modifier: Modifier = Modifier) {
+    val game = viewModel.game
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+            .padding(16.dp)
+    ) {
+        FeedbackToggles(settings = viewModel.settings, modifier = Modifier.align(Alignment.TopStart))
+        Lives(lives = game.lives, modifier = Modifier.align(Alignment.TopEnd))
+
+        val controls = @Composable {
+            DifficultyPicker(
+                selected = viewModel.difficulty,
+                enabled = game.phase == Phase.Idle,
+                onSelect = viewModel::selectDifficulty
+            )
+            ReverseToggle(
+                reverse = viewModel.reverse,
+                enabled = game.phase == Phase.Idle,
+                onChange = viewModel::selectReverse
+            )
+            Spacer(Modifier.height(8.dp))
+            Controls(game = game, scores = viewModel.scores, onStart = viewModel::start)
+        }
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            controls()
+            Spacer(Modifier.height(16.dp))
+            Boxes(game = game, onTap = viewModel::tap, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -199,9 +179,8 @@ fun ReverseToggle(reverse: Boolean, enabled: Boolean, onChange: (Boolean) -> Uni
 }
 
 @Composable
-fun Controls(game: GameState, scores: List<ScoreEntry>) {
-    val coroutineScope = rememberCoroutineScope()
-    var showLeaderboard by remember { mutableStateOf(false) }
+fun Controls(game: GameState, scores: List<ScoreEntry>, onStart: () -> Unit) {
+    var showLeaderboard by rememberSaveable { mutableStateOf(false) }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
@@ -229,7 +208,7 @@ fun Controls(game: GameState, scores: List<ScoreEntry>) {
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
-                onClick = { coroutineScope.launch { game.start() } },
+                onClick = onStart,
                 enabled = game.phase == Phase.Idle
             ) {
                 Text("Start")
@@ -249,35 +228,19 @@ fun Controls(game: GameState, scores: List<ScoreEntry>) {
 }
 
 @Composable
-fun Boxes(
-    game: GameState,
-    snackbarHostState: SnackbarHostState,
-    // Saves the finished game's score; returns true if it is a new best.
-    onGameEnd: () -> Boolean,
-) {
-    val coroutineScope = rememberCoroutineScope()
+fun Boxes(game: GameState, onTap: (Int) -> Unit, modifier: Modifier = Modifier) {
     val size = game.difficulty.gridSize
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(size),
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier,
+        userScrollEnabled = false
     ) {
         items(game.difficulty.boxCount) { index ->
             Box(
                 modifier = Modifier
                     .aspectRatio(1f)
-                    .clickable {
-                        coroutineScope.launch {
-                            val result = game.tap(index) ?: return@launch
-                            val message = when (result) {
-                                Result.GameOver -> "Out of lives! Game over."
-                                Result.Cleared -> "Every box used. Well done!"
-                            } + if (onGameEnd()) " New best!" else ""
-                            snackbarHostState.showSnackbar(
-                                message = message, duration = SnackbarDuration.Short
-                            )
-                        }
-                    }
+                    .clickable { onTap(index) }
                     .padding(5.dp)
                     .border(
                         width = 3.dp,
