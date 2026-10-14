@@ -1,5 +1,6 @@
 package com.theseuntaylor.stackboxes
 
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -42,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -78,6 +81,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun GameScreen(viewModel: GameViewModel, modifier: Modifier = Modifier) {
     val game = viewModel.game
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     Box(
         modifier = modifier
@@ -103,14 +107,34 @@ fun GameScreen(viewModel: GameViewModel, modifier: Modifier = Modifier) {
             Controls(game = game, scores = viewModel.scores, onStart = viewModel::start)
         }
 
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            controls()
-            Spacer(Modifier.height(16.dp))
-            Boxes(game = game, onTap = viewModel::tap, modifier = Modifier.fillMaxWidth())
+        if (landscape) {
+            // Controls on the left, a square grid as tall as the screen on the right.
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 40.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) { controls() }
+                Boxes(
+                    game = game,
+                    onTap = viewModel::tap,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f)
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                controls()
+                Spacer(Modifier.height(16.dp))
+                Boxes(game = game, onTap = viewModel::tap, modifier = Modifier.fillMaxWidth())
+            }
         }
     }
 }
