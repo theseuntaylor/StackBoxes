@@ -115,7 +115,7 @@ private fun GameBoard(viewModel: GameViewModel, onOpenSettings: () -> Unit, modi
             .padding(16.dp)
     ) {
         SettingsButton(onClick = onOpenSettings, modifier = Modifier.align(Alignment.TopStart))
-        Lives(lives = game.lives, modifier = Modifier.align(Alignment.TopEnd))
+        Lives(lives = game.lives, style = viewModel.appIcon.selected, modifier = Modifier.align(Alignment.TopEnd))
 
         val controls = @Composable {
             DifficultyPicker(

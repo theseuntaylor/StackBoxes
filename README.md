@@ -27,7 +27,9 @@ pushed onto a stack; when the round ends the stack unwinds, last in, first out.
       a still launch screen (Android 13 and later); **Show box numbers** can hide the numbers
       (TalkBack still reads "Box N").
     - **App icon**: **Arcade** (pixel blocks and a heart, the default) or **Sequence** (a lit
-      trail on the grid). The launcher icon changes once you leave the app.
+      trail on the grid). The app's colours and lives hearts change to match at once (pixel
+      hearts for Arcade, smooth ones for Sequence); the launcher icon changes once you leave
+      the app.
 
 | Difficulty | Grid | Starting sequence | Speed (each box lit)                   |
 |------------|------|-------------------|----------------------------------------|

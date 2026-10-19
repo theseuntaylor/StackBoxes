@@ -7,7 +7,6 @@ import androidx.compose.ui.graphics.Color
 
 // Pixel hearts: the same red as the heart on the Arcade icon.
 val heartColor = Color(0xFFE53935)
-val heartLostColor = Color(0xFFCFCFCF)
 val heartGlintColor = Color.White
 
 /** Arcade icon: mint, yellow and coral blocks on a plum-black ground. */
