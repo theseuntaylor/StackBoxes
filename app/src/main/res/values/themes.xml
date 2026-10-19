@@ -11,4 +11,9 @@
         <item name="windowSplashScreenAnimationDuration">1000</item>
         <item name="postSplashScreenTheme">@style/Theme.StackBoxes</item>
     </style>
+
+    <!-- Reduce motion: the same launch screen with the icon standing still (Android 13+). -->
+    <style name="Theme.StackBoxes.Starting.Still">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_arcade_still</item>
+    </style>
 </resources>

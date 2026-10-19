@@ -20,8 +20,12 @@ pushed onto a stack; when the round ends the stack unwinds, last in, first out.
    own best scores and leaderboards.
 9. Each box has its own retro tone, rising from C4 on box 1 to C6 on the last box, played
    when it lights up and when you tap it. A wrong tap buzzes. Correct taps give a light
-   vibration tick and wrong taps a short buzz. Use the 🔊 and 📳 toggles in the top-left
-   corner to switch sound or vibration off; your choice is remembered.
+   vibration tick and wrong taps a short buzz.
+10. The gear in the top-left corner opens **Settings**, where your choices are remembered:
+    - **Sound** and **Vibration**, on by default.
+    - Accessibility: **Slower playback** keeps each box lit 50% longer; **Reduce motion** gives
+      a still launch screen (Android 13 and later); **Show box numbers** can hide the numbers
+      (TalkBack still reads "Box N").
 
 | Difficulty | Grid | Starting sequence | Speed (each box lit)                   |
 |------------|------|-------------------|----------------------------------------|
@@ -75,4 +79,5 @@ Results are written to `app/build/reports/tests/testDebugUnitTest/index.html`.
 - `Scores.kt`: saved top scores per difficulty and mode (`ScoreStore`, SharedPreferences)
 - `Leaderboard.kt`: leaderboard dialog
 - `Tones.kt`: box pitches; `Sound.kt`: square-wave tone player (`SoundPlayer`)
-- `Haptics.kt`: vibration; `Settings.kt`: sound and vibration switches
+- `Haptics.kt`: vibration; `Settings.kt`: saved settings (sound, vibration, accessibility)
+- `SettingsScreen.kt`: the settings screen and its gear button

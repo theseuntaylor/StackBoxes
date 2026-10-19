@@ -8,14 +8,26 @@ import androidx.compose.runtime.setValue
 
 private const val KEY_SOUND = "sound"
 private const val KEY_VIBRATION = "vibration"
+private const val KEY_SLOWER_PLAYBACK = "slowerPlayback"
+private const val KEY_REDUCE_MOTION = "reduceMotion"
+private const val KEY_SHOW_NUMBERS = "showNumbers"
 
-/** Sound and vibration switches, on by default and kept on the device. */
+/**
+ * Player settings, kept on the device: sound and vibration (on by default), and the
+ * accessibility options slower playback and reduce motion (off) and box numbers (on).
+ */
 class Settings(private val prefs: SharedPreferences) {
     constructor(context: Context) : this(context.getSharedPreferences("settings", Context.MODE_PRIVATE))
 
     var sound by mutableStateOf(prefs.getBoolean(KEY_SOUND, true))
         private set
     var vibration by mutableStateOf(prefs.getBoolean(KEY_VIBRATION, true))
+        private set
+    var slowerPlayback by mutableStateOf(prefs.getBoolean(KEY_SLOWER_PLAYBACK, false))
+        private set
+    var reduceMotion by mutableStateOf(prefs.getBoolean(KEY_REDUCE_MOTION, false))
+        private set
+    var showNumbers by mutableStateOf(prefs.getBoolean(KEY_SHOW_NUMBERS, true))
         private set
 
     fun updateSound(on: Boolean) {
@@ -26,5 +38,20 @@ class Settings(private val prefs: SharedPreferences) {
     fun updateVibration(on: Boolean) {
         vibration = on
         prefs.edit().putBoolean(KEY_VIBRATION, on).apply()
+    }
+
+    fun updateSlowerPlayback(on: Boolean) {
+        slowerPlayback = on
+        prefs.edit().putBoolean(KEY_SLOWER_PLAYBACK, on).apply()
+    }
+
+    fun updateReduceMotion(on: Boolean) {
+        reduceMotion = on
+        prefs.edit().putBoolean(KEY_REDUCE_MOTION, on).apply()
+    }
+
+    fun updateShowNumbers(on: Boolean) {
+        showNumbers = on
+        prefs.edit().putBoolean(KEY_SHOW_NUMBERS, on).apply()
     }
 }

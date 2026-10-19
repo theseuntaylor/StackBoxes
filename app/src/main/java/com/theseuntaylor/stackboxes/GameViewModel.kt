@@ -106,6 +106,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 if (settings.sound) sounds.buzz()
                 if (settings.vibration) haptics.buzz()
             }
-        })
+        }, slower = { settings.slowerPlayback })
     }
 }

@@ -11,6 +11,7 @@ import kotlinx.coroutines.delay
 private const val TAG = "StackBoxes"
 
 private const val MIN_LIT_MS = 250L
+private const val SLOWER_PLAYBACK = 1.5
 private const val WRONG_FLASH_MS = 600L
 private const val POP_DELAY_MS = 300L
 private const val NEXT_ROUND_DELAY_MS = 500L
@@ -71,6 +72,8 @@ class GameState(
     val difficulty: Difficulty,
     val reverse: Boolean = false,
     private val feedback: GameFeedback = GameFeedback.None,
+    /** Whether boxes stay lit [SLOWER_PLAYBACK] times longer; read each round. */
+    private val slower: () -> Boolean = { false },
 ) {
     var phase by mutableStateOf(Phase.Idle)
         private set
@@ -102,6 +105,7 @@ class GameState(
     /** How long each box stays lit this round; the gap between boxes is half of it. */
     val litMs: Long
         get() = (difficulty.baseLitMs - difficulty.speedUpMs * (round - 1)).coerceAtLeast(MIN_LIT_MS)
+            .let { if (slower()) (it * SLOWER_PLAYBACK).toLong() else it }
 
     fun isLit(index: Int) = index in stack || index == flashing
 

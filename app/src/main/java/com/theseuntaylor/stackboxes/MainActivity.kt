@@ -29,7 +29,6 @@ import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.Scaffold
-import androidx.compose.material.IconToggleButton
 import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -63,6 +62,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        useSplashScreen(reduceMotion = viewModel.settings.reduceMotion)
         setContent {
             StackBoxesTheme {
                 Scaffold { innerPadding ->
@@ -82,6 +82,17 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun GameScreen(viewModel: GameViewModel, modifier: Modifier = Modifier) {
+    var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    if (settingsOpen) {
+        SettingsScreen(viewModel.settings, onClose = { settingsOpen = false }, modifier = modifier)
+    } else {
+        GameBoard(viewModel, onOpenSettings = { settingsOpen = true }, modifier = modifier)
+    }
+}
+
+/** The game itself: the settings gear, lives, controls and the grid. */
+@Composable
+private fun GameBoard(viewModel: GameViewModel, onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
     val game = viewModel.game
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -91,7 +102,7 @@ fun GameScreen(viewModel: GameViewModel, modifier: Modifier = Modifier) {
             .systemBarsPadding()
             .padding(16.dp)
     ) {
-        FeedbackToggles(settings = viewModel.settings, modifier = Modifier.align(Alignment.TopStart))
+        SettingsButton(onClick = onOpenSettings, modifier = Modifier.align(Alignment.TopStart))
         Lives(lives = game.lives, modifier = Modifier.align(Alignment.TopEnd))
 
         val controls = @Composable {
@@ -122,6 +133,7 @@ fun GameScreen(viewModel: GameViewModel, modifier: Modifier = Modifier) {
                 Boxes(
                     game = game,
                     onTap = viewModel::tap,
+                    showNumbers = viewModel.settings.showNumbers,
                     modifier = Modifier
                         .fillMaxHeight()
                         .aspectRatio(1f)
@@ -135,7 +147,12 @@ fun GameScreen(viewModel: GameViewModel, modifier: Modifier = Modifier) {
             ) {
                 controls()
                 Spacer(Modifier.height(16.dp))
-                Boxes(game = game, onTap = viewModel::tap, modifier = Modifier.fillMaxWidth())
+                Boxes(
+                    game = game,
+                    onTap = viewModel::tap,
+                    showNumbers = viewModel.settings.showNumbers,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
@@ -156,37 +173,6 @@ fun DifficultyPicker(selected: Difficulty, enabled: Boolean, onSelect: (Difficul
                 Text(difficulty.label)
             }
         }
-    }
-}
-
-@Composable
-fun FeedbackToggles(settings: Settings, modifier: Modifier = Modifier) {
-    Row(modifier = modifier) {
-        FeedbackToggle(
-            on = settings.sound, onIcon = "🔊", offIcon = "🔇", name = "Sound",
-            onChange = settings::updateSound
-        )
-        FeedbackToggle(
-            on = settings.vibration, onIcon = "📳", offIcon = "📴", name = "Vibration",
-            onChange = settings::updateVibration
-        )
-    }
-}
-
-@Composable
-private fun FeedbackToggle(
-    on: Boolean,
-    onIcon: String,
-    offIcon: String,
-    name: String,
-    onChange: (Boolean) -> Unit,
-) {
-    IconToggleButton(
-        checked = on,
-        onCheckedChange = onChange,
-        modifier = Modifier.semantics { contentDescription = "$name ${if (on) "on" else "off"}" }
-    ) {
-        Text(if (on) onIcon else offIcon, fontSize = 22.sp)
     }
 }
 
@@ -255,7 +241,7 @@ fun Controls(game: GameState, scores: List<ScoreEntry>, onStart: () -> Unit) {
 }
 
 @Composable
-fun Boxes(game: GameState, onTap: (Int) -> Unit, modifier: Modifier = Modifier) {
+fun Boxes(game: GameState, onTap: (Int) -> Unit, showNumbers: Boolean, modifier: Modifier = Modifier) {
     val size = game.difficulty.gridSize
 
     LazyVerticalGrid(
@@ -283,7 +269,7 @@ fun Boxes(game: GameState, onTap: (Int) -> Unit, modifier: Modifier = Modifier) 
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = (index + 1).toString(),
+                    text = if (showNumbers) (index + 1).toString() else "",
                     fontSize = 24.sp,
                     fontWeight = if (wrong || lit) FontWeight.Bold else FontWeight.Normal,
                     textAlign = TextAlign.Center,
