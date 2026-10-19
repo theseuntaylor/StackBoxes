@@ -107,6 +107,8 @@ fun GameScreen(viewModel: GameViewModel, modifier: Modifier = Modifier) {
 private fun GameBoard(viewModel: GameViewModel, onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
     val game = viewModel.game
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    // Kept here, above the portrait/landscape split, so an open leaderboard survives rotation.
+    var showLeaderboard by rememberSaveable { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -129,7 +131,12 @@ private fun GameBoard(viewModel: GameViewModel, onOpenSettings: () -> Unit, modi
                 onChange = viewModel::selectReverse
             )
             Spacer(Modifier.height(8.dp))
-            Controls(game = game, scores = viewModel.scores, onStart = viewModel::start)
+            Controls(
+                game = game,
+                scores = viewModel.scores,
+                onStart = viewModel::start,
+                onShowLeaderboard = { showLeaderboard = true }
+            )
         }
 
         if (landscape) {
@@ -168,6 +175,10 @@ private fun GameBoard(viewModel: GameViewModel, onOpenSettings: () -> Unit, modi
             }
         }
     }
+
+    if (showLeaderboard) {
+        LeaderboardDialog(game.difficulty, game.reverse, viewModel.scores, onDismiss = { showLeaderboard = false })
+    }
 }
 
 @Composable
@@ -202,9 +213,7 @@ fun ReverseToggle(reverse: Boolean, enabled: Boolean, onChange: (Boolean) -> Uni
 }
 
 @Composable
-fun Controls(game: GameState, scores: List<ScoreEntry>, onStart: () -> Unit) {
-    var showLeaderboard by rememberSaveable { mutableStateOf(false) }
-
+fun Controls(game: GameState, scores: List<ScoreEntry>, onStart: () -> Unit, onShowLeaderboard: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = when (game.phase) {
@@ -238,16 +247,12 @@ fun Controls(game: GameState, scores: List<ScoreEntry>, onStart: () -> Unit) {
                 Text("Start")
             }
             OutlinedButton(
-                onClick = { showLeaderboard = true },
+                onClick = onShowLeaderboard,
                 enabled = game.phase == Phase.Idle
             ) {
                 Text("Leaderboard")
             }
         }
-    }
-
-    if (showLeaderboard) {
-        LeaderboardDialog(game.difficulty, game.reverse, scores, onDismiss = { showLeaderboard = false })
     }
 }
 
