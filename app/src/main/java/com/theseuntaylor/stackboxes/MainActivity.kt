@@ -69,7 +69,8 @@ class MainActivity : ComponentActivity() {
         useSplashScreen(reduceMotion = viewModel.settings.reduceMotion)
         enableEdgeToEdge()
         setContent {
-            StackBoxesTheme {
+            // Picking an icon in Settings recolours the app at once; the launcher follows later.
+            StackBoxesTheme(icon = viewModel.appIcon.selected) {
                 Scaffold { innerPadding ->
                     GameScreen(viewModel, Modifier.padding(innerPadding).consumeWindowInsets(innerPadding))
                 }

@@ -42,3 +42,36 @@ val ArcadeLight: ColorScheme = lightColorScheme(
     surfaceContainer = Color(0xFFF1ECF2), surfaceContainerHigh = Color(0xFFEBE6EC),
     surfaceContainerHighest = Color(0xFFE6E1E6),
 )
+
+/** Sequence icon: a mint trail on a navy grid. */
+val SequenceDark: ColorScheme = darkColorScheme(
+    primary = Color(0xFF23E6A8), onPrimary = Color(0xFF00382A),
+    primaryContainer = Color(0xFF00513D), onPrimaryContainer = Color(0xFF7DF5CF),
+    secondary = Color(0xFFB7C4FF), onSecondary = Color(0xFF1F2C61),
+    secondaryContainer = Color(0xFF364379), onSecondaryContainer = Color(0xFFDCE1FF),
+    tertiary = Color(0xFF9ED0FF), onTertiary = Color(0xFF003352),
+    tertiaryContainer = Color(0xFF1F4A6B), onTertiaryContainer = Color(0xFFCFE5FF),
+    background = Color(0xFF0F1222), onBackground = Color(0xFFE3E5F3),
+    surface = Color(0xFF0F1222), onSurface = Color(0xFFE3E5F3),
+    surfaceVariant = Color(0xFF252B47), onSurfaceVariant = Color(0xFFA3A9C4),
+    outline = Color(0xFF6F7591), outlineVariant = Color(0xFF2E3658),
+    surfaceContainerLowest = Color(0xFF0A0C18), surfaceContainerLow = Color(0xFF151930),
+    surfaceContainer = Color(0xFF181C33), surfaceContainerHigh = Color(0xFF22273F),
+    surfaceContainerHighest = Color(0xFF2D324B),
+)
+
+val SequenceLight: ColorScheme = lightColorScheme(
+    primary = Color(0xFF006C4E), onPrimary = Color.White,
+    primaryContainer = Color(0xFF23E6A8), onPrimaryContainer = Color(0xFF002116),
+    secondary = Color(0xFF4C5C92), onSecondary = Color.White,
+    secondaryContainer = Color(0xFFDCE1FF), onSecondaryContainer = Color(0xFF041451),
+    tertiary = Color(0xFF33618A), onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFCFE5FF), onTertiaryContainer = Color(0xFF001D33),
+    background = Color(0xFFF8F8FF), onBackground = Color(0xFF191B24),
+    surface = Color(0xFFF8F8FF), onSurface = Color(0xFF191B24),
+    surfaceVariant = Color(0xFFE1E2EF), onSurfaceVariant = Color(0xFF454859),
+    outline = Color(0xFF767889), outlineVariant = Color(0xFFC6C7D6),
+    surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF2F3FB),
+    surfaceContainer = Color(0xFFECEDF6), surfaceContainerHigh = Color(0xFFE6E8F1),
+    surfaceContainerHighest = Color(0xFFE1E2EB),
+)
