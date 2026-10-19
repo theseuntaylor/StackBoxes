@@ -16,6 +16,8 @@ data class GameSummary(
     val score: Int,
     val best: Int,
     val newBest: Boolean,
+    /** The final sequence's last boxes, oldest first, for the end screen's trail. */
+    val trail: List<Int>,
 )
 
 /**
@@ -78,6 +80,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 score = game.score,
                 best = scores.firstOrNull()?.score ?: 0,
                 newBest = newBest,
+                trail = game.sequence.takeLast(4),
             )
         }
     }
