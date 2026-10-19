@@ -6,10 +6,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+
+/** What the end-of-game screen shows. */
+data class GameSummary(
+    val result: Result,
+    val difficulty: Difficulty,
+    val reverse: Boolean,
+    val score: Int,
+    val best: Int,
+    val newBest: Boolean,
+)
 
 /**
  * Owns the game and everything it plays through, so a rotation (or any other configuration
@@ -30,10 +37,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     var scores by mutableStateOf(scoreStore.top(difficulty, reverse))
         private set
 
-    private val endMessages = Channel<String>(Channel.BUFFERED)
-
-    /** One message per finished game, for the snackbar. */
-    val messages: Flow<String> = endMessages.receiveAsFlow()
+    /** Set when a game ends, until the player plays again or closes the end screen. */
+    var summary by mutableStateOf<GameSummary?>(null)
+        private set
 
     fun selectDifficulty(value: Difficulty) {
         if (game.phase != Phase.Idle) return
@@ -48,7 +54,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun start() {
+        summary = null
         viewModelScope.launch { game.start() }
+    }
+
+    fun playAgain() = start()
+
+    fun closeSummary() {
+        summary = null
     }
 
     fun tap(index: Int) {
@@ -57,11 +70,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val result = game.tap(index) ?: return@launch
             val newBest = scoreStore.record(game.difficulty, game.reverse, game.score)
             scores = scoreStore.top(game.difficulty, game.reverse)
-            endMessages.send(
-                when (result) {
-                    Result.GameOver -> "Out of lives! Game over."
-                    Result.Cleared -> "Every box used. Well done!"
-                } + if (newBest) " New best!" else ""
+            summary = GameSummary(
+                result = result,
+                difficulty = game.difficulty,
+                reverse = game.reverse,
+                score = game.score,
+                best = scores.firstOrNull()?.score ?: 0,
+                newBest = newBest,
             )
         }
     }

@@ -30,12 +30,8 @@ import androidx.compose.material.OutlinedButton
 import androidx.compose.material.Scaffold
 import androidx.compose.material.IconToggleButton
 import androidx.compose.material.Switch
-import androidx.compose.material.SnackbarDuration
-import androidx.compose.material.SnackbarHost
-import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,16 +60,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             StackBoxesTheme {
-                val snackbarHostState = remember { SnackbarHostState() }
-                LaunchedEffect(viewModel) {
-                    viewModel.messages.collect {
-                        snackbarHostState.showSnackbar(message = it, duration = SnackbarDuration.Short)
-                    }
-                }
-                Scaffold(
-                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                ) { innerPadding ->
+                Scaffold { innerPadding ->
                     GameScreen(viewModel, Modifier.padding(innerPadding))
+                }
+                viewModel.summary?.let { summary ->
+                    EndOfGameDialog(
+                        summary = summary,
+                        onPlayAgain = viewModel::playAgain,
+                        onClose = viewModel::closeSummary
+                    )
                 }
             }
         }
