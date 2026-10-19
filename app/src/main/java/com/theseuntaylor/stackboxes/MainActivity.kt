@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,13 +26,16 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedButton
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Switch
-import androidx.compose.material.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,7 +44,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -53,8 +59,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.theseuntaylor.stackboxes.ui.theme.StackBoxesTheme
-import com.theseuntaylor.stackboxes.ui.theme.activeColor
-import com.theseuntaylor.stackboxes.ui.theme.inactiveColor
 
 class MainActivity : ComponentActivity() {
     private val viewModel: GameViewModel by viewModels()
@@ -63,10 +67,11 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         useSplashScreen(reduceMotion = viewModel.settings.reduceMotion)
+        enableEdgeToEdge()
         setContent {
             StackBoxesTheme {
                 Scaffold { innerPadding ->
-                    GameScreen(viewModel, Modifier.padding(innerPadding))
+                    GameScreen(viewModel, Modifier.padding(innerPadding).consumeWindowInsets(innerPadding))
                 }
                 viewModel.summary?.let { summary ->
                     EndOfGameDialog(
@@ -166,15 +171,14 @@ private fun GameBoard(viewModel: GameViewModel, onOpenSettings: () -> Unit, modi
 
 @Composable
 fun DifficultyPicker(selected: Difficulty, enabled: Boolean, onSelect: (Difficulty) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Difficulty.values().forEach { difficulty ->
-            val isSelected = difficulty == selected
-            OutlinedButton(
+    val difficulties = Difficulty.entries
+    SingleChoiceSegmentedButtonRow {
+        difficulties.forEachIndexed { i, difficulty ->
+            SegmentedButton(
+                selected = difficulty == selected,
                 onClick = { onSelect(difficulty) },
                 enabled = enabled,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    backgroundColor = if (isSelected) activeColor else inactiveColor
-                )
+                shape = SegmentedButtonDefaults.itemShape(index = i, count = difficulties.size)
             ) {
                 Text(difficulty.label)
             }
@@ -191,7 +195,7 @@ fun ReverseToggle(reverse: Boolean, enabled: Boolean, onChange: (Boolean) -> Uni
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("Reverse", fontSize = 16.sp)
+        Text("Reverse", style = MaterialTheme.typography.bodyLarge)
         Switch(checked = reverse, onCheckedChange = null, enabled = enabled)
     }
 }
@@ -216,13 +220,13 @@ fun Controls(game: GameState, scores: List<ScoreEntry>, onStart: () -> Unit) {
                     "${game.stack.size}/${game.sequence.size}"
                 Phase.Unwinding -> "Unstacking..."
             },
-            fontSize = 18.sp,
+            style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
         )
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(text = "Score: ${game.score}", fontSize = 16.sp)
-            Text(text = "Best: ${scores.firstOrNull()?.score ?: 0}", fontSize = 16.sp)
+            Text(text = "Score: ${game.score}", style = MaterialTheme.typography.bodyLarge)
+            Text(text = "Best: ${scores.firstOrNull()?.score ?: 0}", style = MaterialTheme.typography.bodyLarge)
         }
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -258,25 +262,28 @@ fun Boxes(game: GameState, onTap: (Int) -> Unit, showNumbers: Boolean, modifier:
         items(game.difficulty.boxCount) { index ->
             val wrong = game.wrong == index
             val lit = game.isLit(index)
-            val color = if (wrong) MaterialTheme.colors.error else activeColor
+            val color = if (wrong) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
             // State is carried by fill, border weight, bold text and the ✕ mark, not just color.
             Box(
                 modifier = Modifier
                     .aspectRatio(1f)
+                    .padding(5.dp)
+                    .clip(BoxShape)
                     .clickable(role = Role.Button, onClickLabel = "Choose") { onTap(index) }
                     .semantics { contentDescription = boxDescription(index, game) }
-                    .padding(5.dp)
-                    .background(if (wrong || lit) color.copy(alpha = 0.3f) else inactiveColor)
+                    .background(
+                        if (wrong || lit) color.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceContainerHigh
+                    )
                     .border(
-                        width = if (wrong || lit) 6.dp else 3.dp,
-                        color = if (wrong || lit) color else inactiveColor,
-                        shape = RectangleShape
+                        width = if (wrong || lit) 6.dp else 0.dp,
+                        color = if (wrong || lit) color else Color.Transparent,
+                        shape = BoxShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = if (showNumbers) (index + 1).toString() else "",
-                    fontSize = 24.sp,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = if (wrong || lit) FontWeight.Bold else FontWeight.Normal,
                     textAlign = TextAlign.Center,
                     // The box's description already says the number; don't read it twice.
@@ -287,7 +294,7 @@ fun Boxes(game: GameState, onTap: (Int) -> Unit, showNumbers: Boolean, modifier:
                         text = "✕",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colors.error,
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(6.dp)
@@ -298,6 +305,8 @@ fun Boxes(game: GameState, onTap: (Int) -> Unit, showNumbers: Boolean, modifier:
         }
     }
 }
+
+private val BoxShape = RoundedCornerShape(12.dp)
 
 /** What TalkBack says for a box: its number, then its state if it has one. */
 private fun boxDescription(index: Int, game: GameState): String = "Box ${index + 1}" + when {

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -23,11 +22,14 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Switch
-import androidx.compose.material.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,8 +42,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.theseuntaylor.stackboxes.ui.theme.activeColor
 
 /** The gear on the game screen that opens [SettingsScreen]. */
 @Composable
@@ -52,6 +52,7 @@ fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 /** Sound, vibration, accessibility and the app icon. The Back arrow or system Back returns to the game. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     settings: Settings,
@@ -62,59 +63,60 @@ fun SettingsScreen(
     BackHandler(onBack = onClose)
     val activity = LocalActivity.current
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .systemBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onClose) {
-                Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Back")
+    Column(modifier = modifier.fillMaxSize()) {
+        TopAppBar(
+            title = { Text("Settings", modifier = Modifier.semantics { heading() }) },
+            navigationIcon = {
+                IconButton(onClick = onClose) {
+                    Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Back")
+                }
+            }
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .systemBarsPadding()
+                .padding(bottom = 16.dp)
+        ) {
+
+            SectionHeading("Sound and vibration")
+            SettingSwitch("Sound", on = settings.sound, onChange = settings::updateSound)
+            SettingSwitch("Vibration", on = settings.vibration, onChange = settings::updateVibration)
+
+            SectionHeading("Accessibility")
+            SettingSwitch(
+                "Slower playback", "Boxes stay lit 50% longer",
+                on = settings.slowerPlayback, onChange = settings::updateSlowerPlayback
+            )
+            SettingSwitch(
+                "Reduce motion", "A still launch screen, from Android 13",
+                on = settings.reduceMotion,
+                onChange = { on ->
+                    settings.updateReduceMotion(on)
+                    activity?.useSplashScreen(reduceMotion = on)
+                }
+            )
+            SettingSwitch("Show box numbers", on = settings.showNumbers, onChange = settings::updateShowNumbers)
+
+            SectionHeading("App icon")
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                AppIcon.entries.forEach { icon ->
+                    IconOption(icon, selected = icon == appIcon.selected, onSelect = { appIcon.select(icon) })
+                }
             }
             Text(
-                "Settings",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.semantics { heading() }
+                "The new icon shows once you leave the app.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
-
-        SectionHeading("Sound and vibration")
-        SettingSwitch("Sound", on = settings.sound, onChange = settings::updateSound)
-        SettingSwitch("Vibration", on = settings.vibration, onChange = settings::updateVibration)
-
-        SectionHeading("Accessibility")
-        SettingSwitch(
-            "Slower playback", "Boxes stay lit 50% longer",
-            on = settings.slowerPlayback, onChange = settings::updateSlowerPlayback
-        )
-        SettingSwitch(
-            "Reduce motion", "A still launch screen, from Android 13",
-            on = settings.reduceMotion,
-            onChange = { on ->
-                settings.updateReduceMotion(on)
-                activity?.useSplashScreen(reduceMotion = on)
-            }
-        )
-        SettingSwitch("Show box numbers", on = settings.showNumbers, onChange = settings::updateShowNumbers)
-
-        SectionHeading("App icon")
-        Row(
-            modifier = Modifier.selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            AppIcon.entries.forEach { icon ->
-                IconOption(icon, selected = icon == appIcon.selected, onSelect = { appIcon.select(icon) })
-            }
-        }
-        Text(
-            "The new icon shows once you leave the app.",
-            fontSize = 14.sp,
-            color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f),
-            modifier = Modifier.padding(horizontal = 8.dp)
-        )
     }
 }
 
@@ -130,34 +132,22 @@ fun Activity.useSplashScreen(reduceMotion: Boolean) {
 private fun SectionHeading(text: String) {
     Text(
         text,
-        fontSize = 14.sp,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colors.primary,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
         modifier = Modifier
-            .padding(start = 8.dp, top = 24.dp, bottom = 4.dp)
+            .padding(start = 16.dp, top = 24.dp, bottom = 4.dp)
             .semantics { heading() }
     )
 }
 
 @Composable
 private fun SettingSwitch(label: String, detail: String? = null, on: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .toggleable(value = on, role = Role.Switch, onValueChange = onChange)
-            .padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, fontSize = 16.sp)
-            if (detail != null) {
-                Text(detail, fontSize = 14.sp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f))
-            }
-        }
-        Switch(checked = on, onCheckedChange = null)
-    }
+    ListItem(
+        headlineContent = { Text(label) },
+        supportingContent = detail?.let { { Text(it) } },
+        trailingContent = { Switch(checked = on, onCheckedChange = null) },
+        modifier = Modifier.toggleable(value = on, role = Role.Switch, onValueChange = onChange)
+    )
 }
 
 @Composable
@@ -174,7 +164,7 @@ private fun IconOption(icon: AppIcon, selected: Boolean, onSelect: () -> Unit) {
             modifier = Modifier
                 .border(
                     width = 3.dp,
-                    color = if (selected) activeColor else MaterialTheme.colors.onSurface.copy(alpha = 0.12f),
+                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                     shape = CircleShape
                 )
                 .padding(5.dp)
@@ -195,6 +185,10 @@ private fun IconOption(icon: AppIcon, selected: Boolean, onSelect: () -> Unit) {
                 )
             }
         }
-        Text(icon.label, fontSize = 16.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+        Text(
+            icon.label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+        )
     }
 }
