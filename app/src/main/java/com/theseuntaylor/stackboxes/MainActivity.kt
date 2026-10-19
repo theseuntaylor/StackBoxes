@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,9 +42,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -220,7 +225,8 @@ fun Controls(game: GameState, scores: List<ScoreEntry>, onStart: () -> Unit) {
                 Phase.Unwinding -> "Unstacking..."
             },
             fontSize = 18.sp,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
         )
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(text = "Score: ${game.score}", fontSize = 16.sp)
@@ -258,18 +264,20 @@ fun Boxes(game: GameState, onTap: (Int) -> Unit, modifier: Modifier = Modifier) 
         userScrollEnabled = false
     ) {
         items(game.difficulty.boxCount) { index ->
+            val wrong = game.wrong == index
+            val lit = game.isLit(index)
+            val color = if (wrong) MaterialTheme.colors.error else activeColor
+            // State is carried by fill, border weight, bold text and the ✕ mark, not just color.
             Box(
                 modifier = Modifier
                     .aspectRatio(1f)
-                    .clickable { onTap(index) }
+                    .clickable(role = Role.Button, onClickLabel = "Choose") { onTap(index) }
+                    .semantics { contentDescription = boxDescription(index, game) }
                     .padding(5.dp)
+                    .background(if (wrong || lit) color.copy(alpha = 0.3f) else inactiveColor)
                     .border(
-                        width = 3.dp,
-                        color = when {
-                            game.wrong == index -> MaterialTheme.colors.error
-                            game.isLit(index) -> activeColor
-                            else -> inactiveColor
-                        },
+                        width = if (wrong || lit) 6.dp else 3.dp,
+                        color = if (wrong || lit) color else inactiveColor,
                         shape = RectangleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -277,9 +285,32 @@ fun Boxes(game: GameState, onTap: (Int) -> Unit, modifier: Modifier = Modifier) 
                 Text(
                     text = (index + 1).toString(),
                     fontSize = 24.sp,
-                    textAlign = TextAlign.Center
+                    fontWeight = if (wrong || lit) FontWeight.Bold else FontWeight.Normal,
+                    textAlign = TextAlign.Center,
+                    // The box's description already says the number; don't read it twice.
+                    modifier = Modifier.clearAndSetSemantics {}
                 )
+                if (wrong) {
+                    Text(
+                        text = "✕",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colors.error,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(6.dp)
+                            .clearAndSetSemantics {}
+                    )
+                }
             }
         }
     }
+}
+
+/** What TalkBack says for a box: its number, then its state if it has one. */
+private fun boxDescription(index: Int, game: GameState): String = "Box ${index + 1}" + when {
+    game.wrong == index -> ", wrong"
+    index in game.stack -> ", stacked"
+    game.flashing == index -> ", lit"
+    else -> ""
 }

@@ -9,7 +9,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.theseuntaylor.stackboxes.ui.theme.heartColor
@@ -30,7 +32,10 @@ private val HEART = listOf(
 @Composable
 fun Lives(lives: Int, modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier.semantics { contentDescription = "Lives: $lives" },
+        modifier = modifier.semantics {
+            contentDescription = "Lives: $lives"
+            liveRegion = LiveRegionMode.Polite
+        },
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         repeat(MAX_LIVES) { i -> PixelHeart(full = i < lives) }
