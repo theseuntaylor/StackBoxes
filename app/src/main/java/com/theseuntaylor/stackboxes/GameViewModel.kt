@@ -24,6 +24,7 @@ data class GameSummary(
  */
 class GameViewModel(application: Application) : AndroidViewModel(application) {
     val settings = Settings(application)
+    val appIcon = AppIconChooser(application)
     private val scoreStore = ScoreStore(application)
     private val sounds = SoundPlayer()
     private val haptics = Haptics(application)

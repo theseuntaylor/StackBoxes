@@ -26,6 +26,8 @@ pushed onto a stack; when the round ends the stack unwinds, last in, first out.
     - Accessibility: **Slower playback** keeps each box lit 50% longer; **Reduce motion** gives
       a still launch screen (Android 13 and later); **Show box numbers** can hide the numbers
       (TalkBack still reads "Box N").
+    - **App icon**: **Arcade** (pixel blocks and a heart, the default) or **Sequence** (a lit
+      trail on the grid). The launcher icon changes once you leave the app.
 
 | Difficulty | Grid | Starting sequence | Speed (each box lit)                   |
 |------------|------|-------------------|----------------------------------------|
@@ -81,3 +83,4 @@ Results are written to `app/build/reports/tests/testDebugUnitTest/index.html`.
 - `Tones.kt`: box pitches; `Sound.kt`: square-wave tone player (`SoundPlayer`)
 - `Haptics.kt`: vibration; `Settings.kt`: saved settings (sound, vibration, accessibility)
 - `SettingsScreen.kt`: the settings screen and its gear button
+- `AppIcon.kt`: the launcher icons (one activity-alias each) and switching between them

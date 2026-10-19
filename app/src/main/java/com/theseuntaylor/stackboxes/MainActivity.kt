@@ -78,13 +78,19 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onStop() {
+        super.onStop()
+        // Leaving the app, not just rotating: now it is safe to switch the launcher icon.
+        if (!isChangingConfigurations) viewModel.appIcon.apply()
+    }
 }
 
 @Composable
 fun GameScreen(viewModel: GameViewModel, modifier: Modifier = Modifier) {
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     if (settingsOpen) {
-        SettingsScreen(viewModel.settings, onClose = { settingsOpen = false }, modifier = modifier)
+        SettingsScreen(viewModel.settings, viewModel.appIcon, onClose = { settingsOpen = false }, modifier = modifier)
     } else {
         GameBoard(viewModel, onOpenSettings = { settingsOpen = true }, modifier = modifier)
     }
