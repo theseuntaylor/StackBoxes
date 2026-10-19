@@ -3,4 +3,12 @@
     <style name="Theme.StackBoxes" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@color/purple_700</item>
     </style>
+
+    <!-- Launch screen: the Arcade blocks stack up on the icon's background, then the game. -->
+    <style name="Theme.StackBoxes.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ic_launcher_arcade_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_arcade</item>
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+        <item name="postSplashScreenTheme">@style/Theme.StackBoxes</item>
+    </style>
 </resources>

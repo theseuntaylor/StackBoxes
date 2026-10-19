@@ -51,6 +51,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.theseuntaylor.stackboxes.ui.theme.StackBoxesTheme
 import com.theseuntaylor.stackboxes.ui.theme.activeColor
 import com.theseuntaylor.stackboxes.ui.theme.inactiveColor
@@ -59,6 +60,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: GameViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         setContent {
             StackBoxesTheme {
