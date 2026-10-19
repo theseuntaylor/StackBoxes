@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             // Picking an icon in Settings recolours the app at once; the launcher follows later.
-            StackBoxesTheme(icon = viewModel.appIcon.selected) {
+            StackBoxesTheme(icon = viewModel.appIcon.selected, appearance = viewModel.settings.appearance) {
                 Scaffold { innerPadding ->
                     GameScreen(viewModel, Modifier.padding(innerPadding).consumeWindowInsets(innerPadding))
                 }

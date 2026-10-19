@@ -1,6 +1,7 @@
 package com.theseuntaylor.stackboxes
 
 import android.app.Activity
+import android.app.UiModeManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
@@ -27,6 +28,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -80,6 +84,15 @@ fun SettingsScreen(
                 .padding(bottom = 16.dp)
         ) {
 
+            SectionHeading("Appearance")
+            AppearancePicker(
+                selected = settings.appearance,
+                onSelect = { value ->
+                    settings.updateAppearance(value)
+                    activity?.useAppearance(value)
+                }
+            )
+
             SectionHeading("Sound and vibration")
             SettingSwitch("Sound", on = settings.sound, onChange = settings::updateSound)
             SettingSwitch("Vibration", on = settings.vibration, onChange = settings::updateVibration)
@@ -116,6 +129,41 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
+        }
+    }
+}
+
+/**
+ * Tells Android 12+ which appearance the app uses, so its window and launch screen match too.
+ * (Older versions follow the system there; the app's own colours still follow the choice.)
+ */
+fun Activity.useAppearance(appearance: Appearance) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+    getSystemService(UiModeManager::class.java).setApplicationNightMode(
+        when (appearance) {
+            Appearance.System -> UiModeManager.MODE_NIGHT_AUTO
+            Appearance.Light -> UiModeManager.MODE_NIGHT_NO
+            Appearance.Dark -> UiModeManager.MODE_NIGHT_YES
+        }
+    )
+}
+
+@Composable
+private fun AppearancePicker(selected: Appearance, onSelect: (Appearance) -> Unit) {
+    val options = Appearance.entries
+    SingleChoiceSegmentedButtonRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        options.forEachIndexed { i, option ->
+            SegmentedButton(
+                selected = option == selected,
+                onClick = { onSelect(option) },
+                shape = SegmentedButtonDefaults.itemShape(index = i, count = options.size)
+            ) {
+                Text(option.label)
+            }
         }
     }
 }

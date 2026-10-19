@@ -22,6 +22,8 @@ pushed onto a stack; when the round ends the stack unwinds, last in, first out.
    when it lights up and when you tap it. A wrong tap buzzes. Correct taps give a light
    vibration tick and wrong taps a short buzz.
 10. The gear in the top-left corner opens **Settings**, where your choices are remembered:
+    - **Appearance**: **System** (the default, following the phone's dark theme), **Light** or
+      **Dark**.
     - **Sound** and **Vibration**, on by default.
     - Accessibility: **Slower playback** keeps each box lit 50% longer; **Reduce motion** gives
       a still launch screen (Android 13 and later); **Show box numbers** can hide the numbers
