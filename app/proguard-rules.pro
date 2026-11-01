@@ -19,3 +19,10 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Strip debug/verbose logging from release builds. The game logs the round's
+# sequence for the E2E script, and that must not leak the answer in release.
+-assumenosideeffects class android.util.Log {
+    public static int d(...);
+    public static int v(...);
+}
